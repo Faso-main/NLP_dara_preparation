@@ -27,21 +27,16 @@
 ## Пример использования
 
 ```python
-doc_path = "Marked.docx"
-result = parse_docx_by_bold_sections(doc_path)
-tables = process_tables(Document(doc_path))
+    for paragraph in doc.paragraphs:
+        for run in paragraph.runs:
+            highlight = run.font.highlight_color
+            if highlight is not None and highlight in color_names:
+                color = color_names[highlight]
+                text = run.text.strip()
+                if text:  # Игнорировать пустые пробелы
+                    highlight_categories[color].append(text)
 
-# Вывод результатов
-print("="*50 + "\nКатегории:\n")
-for category, texts in result.items():
-    print(f"{category.upper()}:")
-    for text in texts:
-        print(f" - {text}")
-    print()
-
-print("="*50 + "\nТаблицы:\n")
-for i, table in enumerate(tables, 1):
-    print(f"Строка таблицы {i}: {table}")
+    return highlight_categories
 ```
 
 ### Описание результата

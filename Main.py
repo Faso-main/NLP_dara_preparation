@@ -1,55 +1,42 @@
 from docx import Document
+from docx.enum.text import WD_COLOR_INDEX
+from collections import defaultdict
+import os
 
-def parse_docx_by_bold_sections(file_path):
-    doc = Document(file_path)
-    categories = {}
-    current_category = "Без категории"
-    current_text = []
+def extract_text_by_highlight(doc_path):
+    doc = Document(doc_path)
+    highlight_categories = defaultdict(list)
+
+    # Соответствие кодов цветов их названиям
+    color_names = {
+        WD_COLOR_INDEX.YELLOW: "YELLOW",
+        WD_COLOR_INDEX.GREEN: "GREEN",
+        WD_COLOR_INDEX.BLUE: "BLUE",
+        WD_COLOR_INDEX.BRIGHT_GREEN: "BRIGHT_GREEN",
+        WD_COLOR_INDEX.DARK_BLUE: "DARK_BLUE",
+        WD_COLOR_INDEX.GRAY_50: "GRAY_50",
+        WD_COLOR_INDEX.GRAY_25: "GRAY_25",
+        WD_COLOR_INDEX.RED: "RED",
+        # и так далее
+    }
 
     for paragraph in doc.paragraphs:
-        # Проверяем, является ли весь абзац заголовком (все runs жирные)
-        is_header = all(run.bold for run in paragraph.runs if run.text.strip())
-        
-        if is_header and paragraph.text.strip():
-            # Сохраняем предыдущую категорию
-            if current_text:
-                categories.setdefault(current_category, []).append(" ".join(current_text))
-                current_text = []
-            
-            # Новая категория (убираем лишние символы)
-            current_category = paragraph.text.strip().strip('*:')
-        else:
-            # Собираем текст внутри категории
-            current_text.append(paragraph.text)
-    
-    # Добавляем последнюю категорию
-    if current_text:
-        categories.setdefault(current_category, []).append(" ".join(current_text))
+        for run in paragraph.runs:
+            highlight = run.font.highlight_color
+            if highlight is not None and highlight in color_names:
+                color = color_names[highlight]
+                text = run.text.strip()
+                if text:  # Игнорировать пустые пробелы
+                    highlight_categories[color].append(text)
 
-    return categories
-
-# Обработка таблиц (пример для ключевой таблицы)
-def process_tables(doc):
-    tables_data = []
-    for table in doc.tables:
-        for row in table.rows:
-            row_data = [cell.text.strip() for cell in row.cells]
-            tables_data.append(row_data)
-    return tables_data
+    return highlight_categories
 
 # Пример использования
-doc_path = "Marked.docx"
-result = parse_docx_by_bold_sections(doc_path)
-tables = process_tables(Document(doc_path))
+file_path = os.path.join('Marked_example')
+result = extract_text_by_highlight(file_path)
 
 # Вывод результатов
-print("="*50 + "\nКатегории:\n")
-for category, texts in result.items():
-    print(f"{category.upper()}:")
-    for text in texts:
-        print(f" - {text}")
-    print()
-
-print("="*50 + "\nТаблицы:\n")
-for i, table in enumerate(tables, 1):
-    print(f"Строка таблицы {i}: {table}")
+for color, texts in result.items():
+    print(f"Цвет выделения: {color}")
+    print("Текст:", " | ".join(texts))
+    print("-" * 50)
